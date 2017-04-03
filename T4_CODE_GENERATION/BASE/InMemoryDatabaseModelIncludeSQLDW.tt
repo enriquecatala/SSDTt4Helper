@@ -1,0 +1,135 @@
+﻿<#@ include file="..\BASE\InMemoryDatabaseModelInclude.tt" #>
+<#+
+	/* 
+	 * CHANGELOG:
+	 * =========
+	 *   Enrique Catala [15-03-2017] Added support for:    
+	 *
+	 * Enrique Catala is Mentor at SolidQ: http://www.solidq.com
+	 * Microsoft Data Platform MVP:  https://mvp.microsoft.com/es-es/PublicProfile/5000312?fullName=Enrique%20Catala
+ 	 * Blog:                         http://www.enriquecatala.com
+	 * Twitter:                      https://twitter.com/enriquecatala
+	 *
+	 * The MIT License (MIT)
+	 * Copyright (c) 2017 Enrique Catala Bañuls, SolidQ, Spain
+	 * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+	 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+	 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+	 */
+
+	/* Returns the column definition in the format expected by SQL CREATE TABLE scripts
+	   SQLDW not supports every data type so in this method we are converting data types
+	   https://docs.microsoft.com/en-us/azure/sql-data-warehouse/sql-data-warehouse-tables-data-types
+	*/
+    public string GetColumnDefinitionForSQLDW(TSqlObject column)
+    {
+	    //System.Diagnostics.Debugger.Launch();
+        SqlDataType sdt = column.GetReferenced(Column.DataType).First().GetProperty<SqlDataType>(DataType.SqlDataType);
+
+		string actualDataType = sdt.ToString().ToUpper();
+		// first add the column name and data type
+        string columnDef = "[" + column.Name.Parts[2] + "] " ;
+
+		// get some properties which we append to the string dependent upon 
+        bool isNullable = (bool)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Nullable").First());
+        int precision = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Precision").First());
+        int scale = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Scale").First());
+        int length = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Length").First());
+        
+        switch (actualDataType)
+        { 
+            case "CHAR":
+            case "VARCHAR":
+            case "NCHAR":
+            case "NVARCHAR":
+				if (length == 0)
+					columnDef += actualDataType + "(4000)";
+				else
+					columnDef += actualDataType + "(" + length.ToString() + ")";
+                break;
+            case "FLOAT":
+            case "REAL":
+				  columnDef += actualDataType + "(" + precision.ToString() + ")";
+				  break;
+			case "DATETIME":
+			case "SMALLDATETIME":
+			case "DATETIMEOFFSET":
+            case "DATETIME2":
+                columnDef += "varchar(30)" ;
+                break;
+            case "DECIMAL":
+            case "NUMERIC":
+                columnDef += actualDataType + "(" + precision.ToString() + "," + scale.ToString() + ")";
+                break;
+			case "GEOMETRY":
+			case "GEOGRAPHY":
+			case "IMAGE":
+				columnDef += "varbinary(4000)";
+				break;
+			case "HIERARCHYID":
+				columnDef += "nvarchar(4000)";
+				break;
+			case "TEXT":
+				columnDef+= "varchar(8000)";
+				break;
+			case "NTEXT":
+				columnDef+= "nvarchar(4000)";
+				break;
+			case "XML":
+				columnDef+= "varchar(8000)";
+				break;
+			case "UNIQUEIDENTIFIER":
+				columnDef += "varbinary(16)";
+				break;
+			case "TIMESTAMP":
+				columnDef += "varbinary(8)";
+				break;
+            default:
+				// don't add anything extra to other data types
+				columnDef += actualDataType;
+                break;
+        }
+        
+        if (!isNullable) 
+            columnDef += " NOT NULL";
+
+        return columnDef;
+    }
+	              
+	public string GetColumnWithCastForSQLDW(TSqlObject column)
+    {
+	   // System.Diagnostics.Debugger.Launch();
+        SqlDataType sdt = column.GetReferenced(Column.DataType).First().GetProperty<SqlDataType>(DataType.SqlDataType);
+
+		string actualDataType = sdt.ToString().ToUpper();
+		// first add the column name and data type
+        string columnDef = "[" + column.Name.Parts[2] + "] " ;
+
+		// get some properties which we append to the string dependent upon 
+        bool isNullable = (bool)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Nullable").First());
+        int precision = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Precision").First());
+        int scale = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Scale").First());
+        int length = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Length").First());
+        
+        switch (actualDataType)
+        {    
+			case "SMALLDATETIME":
+				columnDef = "cast(convert(datetime2," + columnDef + ",121) as SMALLDATETIME) as "+columnDef;
+				break;
+		    case "DATETIME":
+				columnDef = "cast(convert(datetime2," + columnDef + ",121) as datetime) as "+columnDef;
+				break;
+            case "DATETIME2":
+				columnDef = "cast(convert(datetime2," + columnDef + ",121) as datetime2) as "+columnDef;
+                break;
+           
+            default:
+                break;
+        }
+        
+      
+
+        return columnDef;
+    }
+
+#>

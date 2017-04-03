@@ -1,0 +1,69 @@
+﻿<#@ include file="..\BASE\InMemoryDatabaseModelIncludeSQLDW.tt" #>
+-- Version 1.0 
+-- 
+-- Enrique Catala Bañuls: Fichero Autogenerado para creacion de CREATE EXTERNAL TABLES 
+--                        Debe ejectuarse sobre SQL Data Warehouse
+--                        Se asumen los ficheros ya subidos en storage y la BBDD creada 
+--
+-- Creamos esquemas, que son fijos
+CREATE SCHEMA [Fact];
+go--
+CREATE SCHEMA [Dim];
+go
+ 
+-- Creacion de EXTERNAL TABLES PARA USAR CON POLYBASE LA CARGA DE DATOS 
+-- 
+
+
+<#                  
+    //System.Diagnostics.Debugger.Launch();
+    using (TSqlModel model = GetInMemoryDatabaseModel())
+    {
+		// returns just the tables that we want to add history tables
+		// as this demo uses the AdventureWorks database, we are selecting the dbo schema, 
+		// in a real example, you would select your specific schema
+		List<TSqlObject> allTables = GetAllTables(model);
+        foreach (var table in allTables)
+        {
+		  string schemaName  = table.Name.Parts[0] ;
+		  string schemaNameQuoted = "["+schemaName+"]";
+		  string tableName  =  table.Name.Parts[1];
+		  string tableNameQuoted =  "["+tableName+"]";
+		  string schemaAndTableNameQuoted = schemaName+"."+tableName;
+
+		  if(!(schemaName=="Dim" && (tableName == "DimTime" || tableName=="DimDate")))
+		  {  
+#> 
+
+IF EXISTS(SELECT * FROM sys.tables WHERE name = '<#= tableName #>_external' AND schema_id = SCHEMA_ID('<#= schemaName #>'))
+	DROP EXTERNAL TABLE <#= schemaNameQuoted #>.[<#= tableName #>_external];
+GO
+-- EXTERNAL TABLE for <#= table.Name #>
+CREATE EXTERNAL TABLE <#= schemaNameQuoted #>.[<#= tableName #>_external]
+( 
+<#	  
+			int i = 0;
+		    foreach (var column in table.GetReferenced(Table.Columns))
+		    {
+				if(i==0)
+					WriteLine("\t{0}", GetColumnDefinitionForSQLDW(column));
+				else
+					WriteLine("\t,{0}", GetColumnDefinitionForSQLDW(column));
+				i++;
+		    }
+
+#>   
+)
+WITH (
+			LOCATION='<#=table.Name.Parts[1] #>/', 
+			DATA_SOURCE=AzureStorage, 
+			FILE_FORMAT=TextFile
+		);	
+GO
+
+<#
+          } //if(!(schemaName=="Dim" && (tableName == "DimTime" || tableName=="DimDate"))
+        }
+    }
+#>
+-- End of auto generated code!

@@ -1,0 +1,84 @@
+﻿<#@ include file="..\BASE\InMemoryDatabaseModelIncludeSQLDW.tt" #>
+
+-- Version 1.0 
+-- 
+-- Enrique Catala Bañuls: Fichero Autogenerado para creacion de CREATE EXTERNAL TABLES 
+--                        Debe ejectuarse sobre SQL Data Warehouse
+--                        Se asumen los ficheros ya subidos en storage y la BBDD creada 
+--
+-- Creacion de EXTERNAL TABLES PARA USAR CON POLYBASE LA CARGA DE DATOS 
+-- 
+<#                 
+   // System.Diagnostics.Debugger.Launch();
+    using (TSqlModel model = GetInMemoryDatabaseModel())
+    {
+		// returns just the tables that we want to add history tables
+		// as this demo uses the AdventureWorks database, we are selecting the dbo schema, 
+		// in a real example, you would select your specific schema
+		List<TSqlObject> allTables = GetAllTables(model);
+        foreach (var table in allTables)
+        {
+		  string schemaName  = table.Name.Parts[0] ;
+		  string schemaNameQuoted = "["+schemaName+"]";
+		  string tableName  =  table.Name.Parts[1];
+		  string tableNameQuoted =  "["+tableName+"]";
+		  string schemaAndTableNameQuoted = schemaNameQuoted+"."+tableNameQuoted;
+
+		  if(!(schemaName=="Dim" && (tableName == "DimTime" || tableName=="DimDate")))
+		  {
+#> 
+
+-----------------------------------------------------------------------------------------------------
+--INICIO: <#= schemaName #>.<#= tableName #>
+-----------------------------------------------------------------------------------------------------
+IF (object_id('<#= schemaAndTableNameQuoted #>') IS NOT NULL)
+			DROP  TABLE <#= schemaAndTableNameQuoted #>;
+		GO
+		-- Carga de datos con polybase. Requiere que los external tables estén creados previamente
+		--
+        CREATE TABLE <#= schemaAndTableNameQuoted #>
+        WITH 
+		( 
+			CLUSTERED COLUMNSTORE INDEX,
+			DISTRIBUTION = ROUND_ROBIN
+		)
+		AS
+<# 
+		 //System.Diagnostics.Debugger.Launch(); 
+		 
+		int i =0;  
+		string columnasQueryPolybase = String.Empty;
+		foreach (var column in table.GetReferenced(Table.Columns))
+		{ 		
+		     
+			string columna = String.Empty;
+			if(i==0)
+				columna = GetColumnWithCastForSQLDW(column);
+			else
+				columna = ","+GetColumnWithCastForSQLDW(column);
+
+			columnasQueryPolybase +=columna;
+			i++;  
+		}
+		#>
+		SELECT <#= columnasQueryPolybase#>
+		FROM <#= schemaNameQuoted #>.[<#= tableName #>_external]
+		GO 		
+		-- Creamos las estadísticas despues de la tabla (PDW no lo hace de momento automáticamente)
+		-- 
+		<# 
+		foreach (var column in table.GetReferenced(Table.Columns))
+		{ 
+			string columnName = column.Name.Parts[2].ToString();
+#>	    
+		CREATE STATISTICS [stats_<#= tableName #>_<#= columnName#>] on [<#= schemaName #>].[<#= tableName #>] ([<#= columnName#>]);
+<# 
+		}
+#>
+		GO
+<#
+        }//if(!(schemaName=="Dim" && (tableName == "DimTime" || tableName=="DimDate")))
+	  }
+    }
+#>
+-- End of auto generated code!
