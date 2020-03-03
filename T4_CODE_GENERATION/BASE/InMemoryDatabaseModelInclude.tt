@@ -219,6 +219,22 @@
 		return columns;
     }      
 
+    // Returns true if the column is part of primary key
+	public bool ColumnIsPartOfPrimaryKey(List<TSqlObject> primaryKeyColumns,TSqlObject c)
+	{
+		bool retorno = false;
+		//System.Diagnostics.Debugger.Launch();
+		foreach (var column in primaryKeyColumns)
+		{ 		
+		   if (column.Name.Parts[2] == c.Name.Parts[2])
+		   {
+		   	 retorno = true;
+			 break;
+		   }
+		}
+		return (retorno);
+	}
+
 	/// Returns a list of ModelRelationshipInstance objects representing all the foreign key relationships
 	public List<ModelRelationshipInstance> GetForeignKeyColumns(TSqlObject table)
     {

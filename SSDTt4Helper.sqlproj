@@ -235,6 +235,8 @@
     <Build Include="Schemas\ServiceBroker.sql" />
     <Build Include="Schemas\History.sql" />
     <Build Include="Schemas\Auditing.sql" />
+    <Build Include="dbo\Tables\master.sql" />
+    <Build Include="dbo\Tables\slave.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.tt">
@@ -284,11 +286,17 @@
     <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.dsql">
       <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.tt</DependentUpon>
     </None>
+    <None Include="T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_triggers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
     <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeServiceBroker.dsql">
       <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeServiceBroker.tt</DependentUpon>
     </None>
     <None Include="T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_stored_procedures.dsql">
       <DependentUpon>T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_stored_procedures.tt</DependentUpon>
+    </None>
+    <None Include="T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_triggers.dsql">
+      <DependentUpon>T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_triggers.tt</DependentUpon>
     </None>
   </ItemGroup>
 </Project>
