@@ -7,7 +7,7 @@
 --                        Se asumen los ficheros ya subidos en storage y la BBDD creada 
 --
 -- Creacion de EXTERNAL TABLES PARA USAR CON POLYBASE LA CARGA DE DATOS 
--- 
+--  
 <#                 
    // System.Diagnostics.Debugger.Launch();
     using (TSqlModel model = GetInMemoryDatabaseModel())
@@ -44,7 +44,8 @@ IF (object_id('<#= schemaAndTableNameQuoted #>') IS NOT NULL)
 		)
 		AS
 <# 
-		 //System.Diagnostics.Debugger.Launch(); 
+		//if(table.Name.Parts[1]=="Employee")
+		//	System.Diagnostics.Debugger.Launch(); 
 		 
 		int i =0;  
 		string columnasQueryPolybase = String.Empty;

@@ -8,7 +8,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectVersion>4.1</ProjectVersion>
     <ProjectGuid>{a0b598ee-777b-4f6b-812d-2f8c1c34ddf0}</ProjectGuid>
-    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql130DatabaseSchemaProvider</DSP>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql140DatabaseSchemaProvider</DSP>
     <OutputType>Database</OutputType>
     <RootPath>
     </RootPath>
@@ -237,20 +237,20 @@
     <None Include="T4_CODE_GENERATION\Demo Polybase Generation\CREATE_EXTERNAL_TABLES.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
-    <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeSQLDW.dsql">
-      <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeSQLDW.tt</DependentUpon>
-    </None>
-    <None Include="T4_CODE_GENERATION\Demo Polybase Generation\CREATE_EXTERNAL_TABLES.dsql">
-      <DependentUpon>T4_CODE_GENERATION\Demo Polybase Generation\CREATE_EXTERNAL_TABLES.tt</DependentUpon>
-    </None>
     <None Include="T4_CODE_GENERATION\Demo Polybase Generation\LOAD_TABLES.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.dsql">
+      <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.tt</DependentUpon>
     </None>
     <None Include="T4_CODE_GENERATION\Demo Polybase Generation\LOAD_TABLES.dsql">
       <DependentUpon>T4_CODE_GENERATION\Demo Polybase Generation\LOAD_TABLES.tt</DependentUpon>
     </None>
-    <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.dsql">
-      <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.tt</DependentUpon>
+    <None Include="T4_CODE_GENERATION\Demo Polybase Generation\CREATE_EXTERNAL_TABLES.dsql">
+      <DependentUpon>T4_CODE_GENERATION\Demo Polybase Generation\CREATE_EXTERNAL_TABLES.tt</DependentUpon>
+    </None>
+    <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeSQLDW.dsql">
+      <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeSQLDW.tt</DependentUpon>
     </None>
   </ItemGroup>
 </Project>

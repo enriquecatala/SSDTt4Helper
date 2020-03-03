@@ -24,11 +24,29 @@
     public string GetColumnDefinitionForSQLDW(TSqlObject column)
     {
 	    //System.Diagnostics.Debugger.Launch();
+
+		// first add the column name and data type
+        string columnDef = "[" + column.Name.Parts[2] + "] " ;
+
+		if (column.GetReferenced(Column.DataType).Count()==0)
+		{
+			//" is a computed column"
+			return String.Empty;			
+		}
+
+		var tmp = column.GetReferenced(Column.DataType).First();		        
+		
+		if (tmp.ObjectType.Name != "DataType")
+		{
+		    columnDef+=" is a "+ tmp.ObjectType.Name+ " and must be FIXED MANUALLY!! ";
+			return columnDef;
+		}
+
+
         SqlDataType sdt = column.GetReferenced(Column.DataType).First().GetProperty<SqlDataType>(DataType.SqlDataType);
 
 		string actualDataType = sdt.ToString().ToUpper();
-		// first add the column name and data type
-        string columnDef = "[" + column.Name.Parts[2] + "] " ;
+	
 
 		// get some properties which we append to the string dependent upon 
         bool isNullable = (bool)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Nullable").First());
@@ -98,12 +116,33 @@
 	              
 	public string GetColumnWithCastForSQLDW(TSqlObject column)
     {
-	   // System.Diagnostics.Debugger.Launch();
-        SqlDataType sdt = column.GetReferenced(Column.DataType).First().GetProperty<SqlDataType>(DataType.SqlDataType);
+	try
+	{
+		if (column.Name.Parts[2] == "OrganizationLevel")
+	        System.Diagnostics.Debugger.Launch();
 
-		string actualDataType = sdt.ToString().ToUpper();
 		// first add the column name and data type
         string columnDef = "[" + column.Name.Parts[2] + "] " ;
+
+		if (column.GetReferenced(Column.DataType).Count()==0)
+		{
+			//columnDef+=" is a computed column";
+			return String.Empty;			
+		}
+
+		var tmp = column.GetReferenced(Column.DataType).First();		
+        
+		
+		if (tmp.ObjectType.Name != "DataType")
+		{
+		    columnDef+=" is a "+ tmp.ObjectType.Name+ " and must be FIXED MANUALLY!! ";
+			return columnDef;
+		}
+
+		SqlDataType sdt = column.GetReferenced(Column.DataType).First().GetProperty<SqlDataType>(DataType.SqlDataType);
+
+		string actualDataType = sdt.ToString().ToUpper();
+		
 
 		// get some properties which we append to the string dependent upon 
         bool isNullable = (bool)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Nullable").First());
@@ -130,6 +169,11 @@
       
 
         return columnDef;
+		}
+		catch(Exception e)
+		{
+		   throw e;
+		}
     }
 
 #>
