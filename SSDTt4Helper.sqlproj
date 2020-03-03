@@ -89,6 +89,8 @@
     <Folder Include="T4_CODE_GENERATION" />
     <Folder Include="T4_CODE_GENERATION\BASE" />
     <Folder Include="T4_CODE_GENERATION\Demo Polybase Generation" />
+    <Folder Include="T4_CODE_GENERATION\Demo ServiceBroker Generation" />
+    <Folder Include="T4_CODE_GENERATION\Auditing demo" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="Production\Tables\ScrapReason.sql" />
@@ -226,6 +228,24 @@
     <Build Include="Production\XMLSchemaCollections\ProductDescriptionSchemaCollection.sql" />
     <Build Include="Sales\XMLSchemaCollections\StoreSurveySchemaCollection.sql" />
     <Build Include="ExtendedProperties.sql" />
+    <Build Include="T4_CODE_GENERATION\Auditing demo\AuditingTriggers.sql">
+      <DependentUpon>T4_CODE_GENERATION\Auditing demo\AuditingTriggers.tt</DependentUpon>
+    </Build>
+    <Build Include="T4_CODE_GENERATION\Auditing demo\AuditingTables.sql">
+      <DependentUpon>T4_CODE_GENERATION\Auditing demo\AuditingTables.tt</DependentUpon>
+    </Build>
+    <Build Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.sql">
+      <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.tt</DependentUpon>
+    </Build>
+    <Build Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeSQLDW.sql">
+      <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeSQLDW.tt</DependentUpon>
+    </Build>
+    <Build Include="T4_CODE_GENERATION\Auditing demo\HistoryTables.sql">
+      <DependentUpon>T4_CODE_GENERATION\Auditing demo\HistoryTables.tt</DependentUpon>
+    </Build>
+    <Build Include="T4_CODE_GENERATION\Auditing demo\HistoryTriggers.sql">
+      <DependentUpon>T4_CODE_GENERATION\Auditing demo\HistoryTriggers.tt</DependentUpon>
+    </Build>
   </ItemGroup>
   <ItemGroup>
     <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.tt">
@@ -240,17 +260,30 @@
     <None Include="T4_CODE_GENERATION\Demo Polybase Generation\LOAD_TABLES.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
-    <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.dsql">
-      <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.tt</DependentUpon>
-    </None>
     <None Include="T4_CODE_GENERATION\Demo Polybase Generation\LOAD_TABLES.dsql">
       <DependentUpon>T4_CODE_GENERATION\Demo Polybase Generation\LOAD_TABLES.tt</DependentUpon>
     </None>
     <None Include="T4_CODE_GENERATION\Demo Polybase Generation\CREATE_EXTERNAL_TABLES.dsql">
       <DependentUpon>T4_CODE_GENERATION\Demo Polybase Generation\CREATE_EXTERNAL_TABLES.tt</DependentUpon>
     </None>
-    <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeSQLDW.dsql">
-      <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeSQLDW.tt</DependentUpon>
+    <None Include="T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_stored_procedures.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Include="T4_CODE_GENERATION\Auditing demo\AuditingTables.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Include="T4_CODE_GENERATION\Auditing demo\AuditingTriggers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Include="T4_CODE_GENERATION\Auditing demo\HistoryTables.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Include="T4_CODE_GENERATION\Auditing demo\HistoryTriggers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Include="T4_CODE_GENERATION\Auditing demo\TablesToProcess.json" />
+    <None Include="T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_stored_procedures.dsql">
+      <DependentUpon>T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_stored_procedures.tt</DependentUpon>
     </None>
   </ItemGroup>
 </Project>

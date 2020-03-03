@@ -30,8 +30,7 @@
 
 		if (column.GetReferenced(Column.DataType).Count()==0)
 		{
-			//" is a computed column"
-			return String.Empty;			
+			return "--"+columnDef + " is a computed column";					
 		}
 
 		var tmp = column.GetReferenced(Column.DataType).First();		        
@@ -118,8 +117,8 @@
     {
 	try
 	{
-		if (column.Name.Parts[2] == "OrganizationLevel")
-	        System.Diagnostics.Debugger.Launch();
+		//if (column.Name.Parts[2] == "OrganizationLevel")
+	    //    System.Diagnostics.Debugger.Launch();
 
 		// first add the column name and data type
         string columnDef = "[" + column.Name.Parts[2] + "] " ;
