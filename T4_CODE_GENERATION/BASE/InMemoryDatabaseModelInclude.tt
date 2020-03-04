@@ -582,5 +582,48 @@
         }
     }
 
+	// returns primary key columns comma separated values
+	//
+	public string GetColumnsCommaSeparatedString(List<TSqlObject> columns)
+	{
+		string retorno = String.Empty;
+		int i=0;
+		//System.Diagnostics.Debugger.Launch();
+		foreach (var column in columns)
+		{ 		
+		    if(i==0)
+			{
+			   retorno = String.Format("[{0}] ",column.Name.Parts[2]);
+			}
+			else
+			{
+			   retorno += String.Format(",[{0}] ",column.Name.Parts[2]);
+			}
+			i++;
+		}
+		return (retorno);
+	}
+
+	// returns columns with metadata  comma separated values
+	//
+	public string GetColumnsWithDataTypeCommaSeparatedString(List<TSqlObject> columns)
+	{
+          string retorno = String.Empty;
+          int i=0;
+   		  foreach (var column in columns)
+		  { 				     
+			if(i==0)
+            {
+				retorno = GetColumnWithDataTypeOnly(column);                                
+            }
+			else
+            {
+				retorno += ","+GetColumnWithDataTypeOnly(column);
+            }
+            i++;
+		  }
+		return (retorno);
+	}
+
 	#endregion
 #>

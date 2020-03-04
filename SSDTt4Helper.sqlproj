@@ -283,20 +283,20 @@
     <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeServiceBroker.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
-    <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.dsql">
-      <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.tt</DependentUpon>
-    </None>
     <None Include="T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_triggers.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
     <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeServiceBroker.dsql">
       <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelIncludeServiceBroker.tt</DependentUpon>
     </None>
-    <None Include="T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_stored_procedures.dsql">
-      <DependentUpon>T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_stored_procedures.tt</DependentUpon>
+    <None Include="T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.dsql">
+      <DependentUpon>T4_CODE_GENERATION\BASE\InMemoryDatabaseModelInclude.tt</DependentUpon>
     </None>
     <None Include="T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_triggers.dsql">
       <DependentUpon>T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_triggers.tt</DependentUpon>
+    </None>
+    <None Include="T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_stored_procedures.dsql">
+      <DependentUpon>T4_CODE_GENERATION\Demo ServiceBroker Generation\create_datasync_stored_procedures.tt</DependentUpon>
     </None>
   </ItemGroup>
 </Project>
