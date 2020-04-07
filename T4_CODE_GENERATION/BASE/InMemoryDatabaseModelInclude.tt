@@ -277,6 +277,41 @@
 		return (retorno);
 	}
 
+	/// Returns the list of identity columns for the table
+	public List<TSqlObject> GetIdentityColumns(TSqlObject table)
+    {
+		List<TSqlObject> columns = new List<TSqlObject>();
+				
+		//System.Diagnostics.Debugger.Break();
+		foreach (var column in table.GetReferenced(Table.Columns))
+		{ 		
+		    //https://github.com/microsoft/DACExtensions/blob/master/DacFxStronglyTypedModel/model.cs
+			if(column.GetProperty<Boolean>(Column.IsIdentity)==true)
+			{
+				columns.Add(column);
+			}
+		}
+		
+		return columns;
+    }  
+
+	// Returns true if the column is part of identity columns
+	public bool ColumnIsPartOfIdentityColumns(TSqlObject table,TSqlObject c)
+	{
+		bool retorno = false;
+		//System.Diagnostics.Debugger.Launch();
+		foreach (var column in table.GetReferenced(Table.Columns))
+		{ 		
+		   if((column.GetProperty<Boolean>(Column.IsIdentity)==true) 
+				&& (column.Name.Parts[2] == c.Name.Parts[2]))
+		   {
+		   	 retorno = true;
+			 break;
+		   }
+		}
+		return (retorno);
+	}
+
 	// Returns the column definition in the format expected by SQL CREATE TABLE scripts
     public string GetColumnDefinition(TSqlObject column)
     {
@@ -470,6 +505,58 @@
         }
     }
 
+	// returns the columns, excluding both sync columns ([$sb_node] ,[$sb_rownum])	
+	//
+	public string GetColumnsWithDataType(TSqlObject table)
+	{
+		int i=0;
+		string retorno = String.Empty;
+   		foreach (var column in table.GetReferenced(Table.Columns))
+		{ 				     
+			
+			string columna = String.Empty;
+			string columnaName = String.Empty;
+			if(i==0)
+			{
+				columna = GetColumnWithDataTypeOnly(column);                					
+			}
+			else
+			{
+				columna = ","+GetColumnWithDataTypeOnly(column);					
+			}
+			retorno +=columna;				
+			i++;
+			
+		}
+		return(retorno);
+	}
+
+	// returns the columns
+	//
+	public string GetColumnsWithoutDataType(TSqlObject table)
+	{
+		int i=0;
+		string retorno= String.Empty;
+   		foreach (var column in table.GetReferenced(Table.Columns))
+		{ 				     
+			
+			string columnaName = String.Empty;
+			if(i==0)
+			{
+				columnaName = "[" + column.Name.Parts[2] + "] ";
+			}
+			else
+			{
+				columnaName = ", [" + column.Name.Parts[2] + "] ";
+			}
+				
+			retorno+=columnaName;
+			i++;
+			
+		}
+		return(retorno);
+	}
+
 	#region In-Memory model only with the filtered objects
 
 	// Base class that will help filtering objects based on a JSON
@@ -577,7 +664,15 @@
 				// now read the script and add it to the in-memory model
                 StreamReader reader = new StreamReader(prjItem.FileNames[0]);
                 string script = reader.ReadToEnd();
+				try
+				{
                 model.AddObjects(script);
+				}
+				catch(Exception e)
+				{
+				System.Diagnostics.Debugger.Launch();
+				throw e;
+				}
             }
         }
     }
