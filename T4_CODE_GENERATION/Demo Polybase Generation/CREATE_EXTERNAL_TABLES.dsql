@@ -93,6 +93,46 @@ GO
 
  
 
+IF EXISTS(SELECT * FROM sys.tables WHERE name = 'master_external' AND schema_id = SCHEMA_ID('dbo'))
+	DROP EXTERNAL TABLE [dbo].[master_external];
+GO
+-- EXTERNAL TABLE for [dbo].[master]
+CREATE EXTERNAL TABLE [dbo].[master_external]
+( 
+	[id_master] INT NOT NULL
+	,[name] VARCHAR(256)
+	,[val] DECIMAL(10,0)
+   
+)
+WITH (
+			LOCATION='master/', 
+			DATA_SOURCE=AzureStorage, 
+			FILE_FORMAT=TextFile
+		);	
+GO
+
+ 
+
+IF EXISTS(SELECT * FROM sys.tables WHERE name = 'slave_external' AND schema_id = SCHEMA_ID('dbo'))
+	DROP EXTERNAL TABLE [dbo].[slave_external];
+GO
+-- EXTERNAL TABLE for [dbo].[slave]
+CREATE EXTERNAL TABLE [dbo].[slave_external]
+( 
+	[id_slave] INT NOT NULL
+	,[id_master] INT NOT NULL
+	,[val_slave] BIGINT
+   
+)
+WITH (
+			LOCATION='slave/', 
+			DATA_SOURCE=AzureStorage, 
+			FILE_FORMAT=TextFile
+		);	
+GO
+
+ 
+
 IF EXISTS(SELECT * FROM sys.tables WHERE name = 'Department_external' AND schema_id = SCHEMA_ID('HumanResources'))
 	DROP EXTERNAL TABLE [HumanResources].[Department_external];
 GO

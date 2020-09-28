@@ -126,6 +126,64 @@ IF (object_id('[dbo].[ErrorLog]') IS NOT NULL)
  
 
 -----------------------------------------------------------------------------------------------------
+--INICIO: dbo.master
+-----------------------------------------------------------------------------------------------------
+IF (object_id('[dbo].[master]') IS NOT NULL)
+			DROP  TABLE [dbo].[master];
+		GO
+		-- Carga de datos con polybase. Requiere que los external tables estén creados previamente
+		--
+        CREATE TABLE [dbo].[master]
+        WITH 
+		( 
+			CLUSTERED COLUMNSTORE INDEX,
+			DISTRIBUTION = ROUND_ROBIN
+		)
+		AS
+		SELECT [id_master] ,[name] ,[val] 
+		FROM [dbo].[master_external]
+		GO 		
+		-- Creamos las estadísticas despues de la tabla (PDW no lo hace de momento automáticamente)
+		-- 
+			    
+		CREATE STATISTICS [stats_master_id_master] on [dbo].[master] ([id_master]);
+	    
+		CREATE STATISTICS [stats_master_name] on [dbo].[master] ([name]);
+	    
+		CREATE STATISTICS [stats_master_val] on [dbo].[master] ([val]);
+		GO
+ 
+
+-----------------------------------------------------------------------------------------------------
+--INICIO: dbo.slave
+-----------------------------------------------------------------------------------------------------
+IF (object_id('[dbo].[slave]') IS NOT NULL)
+			DROP  TABLE [dbo].[slave];
+		GO
+		-- Carga de datos con polybase. Requiere que los external tables estén creados previamente
+		--
+        CREATE TABLE [dbo].[slave]
+        WITH 
+		( 
+			CLUSTERED COLUMNSTORE INDEX,
+			DISTRIBUTION = ROUND_ROBIN
+		)
+		AS
+		SELECT [id_slave] ,[id_master] ,[val_slave] 
+		FROM [dbo].[slave_external]
+		GO 		
+		-- Creamos las estadísticas despues de la tabla (PDW no lo hace de momento automáticamente)
+		-- 
+			    
+		CREATE STATISTICS [stats_slave_id_slave] on [dbo].[slave] ([id_slave]);
+	    
+		CREATE STATISTICS [stats_slave_id_master] on [dbo].[slave] ([id_master]);
+	    
+		CREATE STATISTICS [stats_slave_val_slave] on [dbo].[slave] ([val_slave]);
+		GO
+ 
+
+-----------------------------------------------------------------------------------------------------
 --INICIO: HumanResources.Department
 -----------------------------------------------------------------------------------------------------
 IF (object_id('[HumanResources].[Department]') IS NOT NULL)

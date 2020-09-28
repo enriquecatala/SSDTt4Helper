@@ -26,6 +26,9 @@
 	/* 
 	 * CHANGELOG:
 	 * =========
+	 *  ECB[22-07-2020] 
+	 *   - Partitioned tables support 
+	 * 
 	 *   Enrique Catala [10-01-2017] Added support for:
 	 *       -VS2019 support
 	 *		 -bug fixes
@@ -57,6 +60,14 @@
 	 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 	 */
 
+	 // full identity definition
+	 string regExprIDENTITY = @"IDENTITY\s*\(\s*[-]?\d+\s*,\s*[-]?\d+\s*\)";  
+	 // start of constraint definition
+	 string regExprCONSTRAINT = @"CONSTRAINT\s*\[";
+	 // detects GO clause
+	 string regExprGO = @"GO\s*\n";
+	 // DETECTS change tracking enable
+	 string regExprCT = @"ALTER TABLE.+ENABLE\s+CHANGE_TRACKING";
 
 	// To return the solution directory of this project. 
 	// NOTE: You can use Host.ResolvePath("") to get the "Project" path
@@ -203,15 +214,21 @@
     {
 		List<TSqlObject> columns = new List<TSqlObject>();
 
+		
 		// find the primary key constraint for the table		
 		// we have to iterate through the children as Linq throws an error which we cannot catch if no PrimaryKeyConstraint exists
 		foreach (var child in table.GetChildren())
 		{
 			if (child.ObjectType.Name == "PrimaryKeyConstraint")
             {
+			
+				//System.Diagnostics.Debugger.Launch();
+
 				foreach (TSqlObject column in child.GetReferenced(DacQueryScopes.UserDefined).Where(x => x.ObjectType.Name == "Column"))
 				{
-					columns.Add(column);
+					// FIX: In partitioned tables, the partitioned column happens twice. Whit this workaround we fix that
+					if(!columns.Exists(x=>x.Name.Parts[2] == column.Name.Parts[2]))
+						columns.Add(column);
 				}
 			} 
 			
@@ -250,7 +267,10 @@
 				{
 					foreach (ModelRelationshipInstance refRel in column.GetReferencingRelationshipInstances())
 					{
+
 						if (refRel.Relationship.Name == "ForeignColumns")                     {
+												System.Diagnostics.Debugger.Break();
+
 							foreignKeyRelationship.Add(refRel);
 						}
 					}
@@ -260,6 +280,22 @@
 		return foreignKeyRelationship;
     }      
 	
+	public List<TSqlObject> GetForeignKeyColumnsFromRelationship(TSqlObject table, TSqlObject tableNested, ModelRelationshipInstance refRel)
+	{
+		List<TSqlObject> retorno = new  List<TSqlObject>();
+	
+	System.Diagnostics.Debugger.Break();
+
+		foreach(TSqlObject col in refRel.FromObject.GetReferenced(Table.Columns))
+		//foreach(TSqlObject col in ((Microsoft.Data.Tools.Schema.Sql.SchemaModel.SqlForeignKeyConstraint)((Microsoft.Data.Tools.Schema.SchemaModel.ModelStore.ModelRelationship)((Microsoft.Data.Tools.Schema.Sql.SchemaModel.SqlForeignKeyConstraint)((TSqlObject)refRel.FromObject).ContextObject).ForeignColumns).FromElement).Columns)
+		{
+			 retorno.Add(col);
+		}
+
+		return(retorno);
+	}
+
+
 	// Return true if the tables has an IDENTITY
 	public bool HasIdentityColumn(TSqlObject table)
 	{
@@ -312,6 +348,138 @@
 		return (retorno);
 	}
 
+	/// Returns the identity increment
+	public string GetIdentityIncrement(TSqlObject column)
+    {
+		string retorno = String.Empty;
+		
+		//https://github.com/microsoft/DACExtensions/blob/master/DacFxStronglyTypedModel/model.cs
+		if(column.GetProperty<Boolean>(Column.IsIdentity)==true)
+		{
+			retorno = column.GetProperty<String>(Column.IdentityIncrement);
+		}		
+		
+		return retorno;
+    }  
+
+		/// Returns the identity increment
+	public string GetIdentitySeed(TSqlObject column)
+    {
+		string retorno = String.Empty;
+		       
+		//https://github.com/microsoft/DACExtensions/blob/master/DacFxStronglyTypedModel/model.cs
+		if(column.GetProperty<Boolean>(Column.IsIdentity)==true)
+		{
+			retorno = column.GetProperty<String>(Column.IdentitySeed);
+		}		
+		
+		return retorno;
+    }  
+
+	public bool IsTimestampColumn(TSqlObject column)
+	{
+		bool retorno = false;
+
+		if(GetColumnDataType(column, includeFullColumnDefinition:false)=="TIMESTAMP" || GetColumnDataType(column, includeFullColumnDefinition:false)=="ROWVERSION")
+			retorno = true;
+
+		return(retorno);
+	}
+
+
+	
+	// return true if columnname exists in the table
+	public bool HasColumnName(TSqlObject table, string columnName)
+	{
+		bool retorno = false;
+		//System.Diagnostics.Debugger.Launch();
+		foreach (var column in table.GetReferenced(Table.Columns))
+		{ 		
+		   if(column.Name.Parts[2] == columnName)
+		   {
+		   	 retorno = true;
+			 break;
+		   }
+		}
+		return (retorno);
+	}
+
+	///
+	/// Property wrapper for <see cref="M:Table.ChangeTrackingEnabled"/>
+	/// <see href="http://msdn.microsoft.com/en-us/library/microsoft.sqlserver.dac.model.table.changetrackingenabled.aspx">Table.ChangeTrackingEnabled</see>
+	///
+	public bool IsChangeTrackingEnabled (TSqlObject table)
+	{
+		return table.GetProperty<Boolean>(Table.ChangeTrackingEnabled);
+	}
+	
+	// Returns the column data type 
+	// if includeFullColumnDefinition == true, it will include the NOT NULL clause (in case the column is null)
+    public string GetColumnDataType(TSqlObject column, bool includeFullColumnDefinition)
+    {
+		string retorno=String.Empty;
+	
+		SqlDataType sdt = column.GetReferenced(Column.DataType).First().GetProperty<SqlDataType>(DataType.SqlDataType);
+
+
+		// first add the column name and data type
+        string columnDef = sdt.ToString().ToUpper();
+		
+
+		// get some properties which we append to the string dependent upon 
+        bool isNullable = (bool)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Nullable").First());
+        int precision = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Precision").First());
+        int scale = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Scale").First());
+        int length = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Length").First());
+       
+
+        switch (sdt.ToString().ToUpper())
+        {
+             case "VARIANT":
+			    //System.Diagnostics.Debugger.Launch();
+				columnDef = "SQL_VARIANT";				
+				break;
+			case "CHAR":
+            case "VARCHAR":
+            case "NCHAR":
+            case "NVARCHAR":
+			case "VARBINARY":
+				if (length == 0)
+					columnDef += "(MAX)";
+				else
+					columnDef += "(" + length.ToString() + ")";
+                break;
+            case "BINARY":
+			    columnDef += "(" + length.ToString() + ")";
+                break;
+			case "FLOAT":            
+                columnDef += "(" + precision.ToString() + ")";
+                break;
+			case "DATETIMEOFFSET":                
+			case "TIME":					
+            case "DATETIME2":
+				columnDef += "(" + scale.ToString() + ")";
+                break;
+            case "DECIMAL":
+            case "NUMERIC":
+                columnDef += "(" + precision.ToString() + "," + scale.ToString() + ")";
+                break;
+			case "TEXT":
+				columnDef = "varchar(max) /*is TEXT, but we changed to varchar(max) in GetColumnDataType((TSqlObject column)*/";
+				break;
+            default:
+				// don't add anything extra to other data types
+                break;
+        }
+
+		if (includeFullColumnDefinition && !isNullable) 
+            columnDef += " NOT NULL";
+        
+        retorno = columnDef;
+
+		return (retorno);
+	}
+
 	// Returns the column definition in the format expected by SQL CREATE TABLE scripts
     public string GetColumnDefinition(TSqlObject column)
     {
@@ -319,7 +487,9 @@
         string cName = "[" + column.Name.Parts[2] + "] " ;		
 
 		if (column.GetReferenced(Column.DataType).Count()==0)
-		{			
+		{		
+
+			System.Diagnostics.Debugger.Launch();
 			return "--"+cName + " is a computed column";			
 		}
 
@@ -331,45 +501,13 @@
 			return cName;
 		}
 
-        SqlDataType sdt = column.GetReferenced(Column.DataType).First().GetProperty<SqlDataType>(DataType.SqlDataType);
 
 		// first add the column name and data type
-        string columnDef = "[" + column.Name.Parts[2] + "] " + sdt.ToString().ToUpper();
+        string columnDef = cName;
 		
+		columnDef += GetColumnDataType(column, includeFullColumnDefinition: true);
 
-		// get some properties which we append to the string dependent upon 
-        bool isNullable = (bool)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Nullable").First());
-        int precision = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Precision").First());
-        int scale = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Scale").First());
-        int length = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Length").First());
-        
-        switch (sdt.ToString().ToUpper())
-        {
-            case "CHAR":
-            case "VARCHAR":
-            case "NCHAR":
-            case "NVARCHAR":
-				if (length == 0)
-					columnDef += "(MAX)";
-				else
-					columnDef += "(" + length.ToString() + ")";
-                break;
-            case "FLOAT":
-            case "REAL":
-            case "DATETIME2":
-                columnDef += "(" + precision.ToString() + ")";
-                break;
-            case "DECIMAL":
-            case "NUMERIC":
-                columnDef += "(" + precision.ToString() + "," + scale.ToString() + ")";
-                break;
-            default:
-				// don't add anything extra to other data types
-                break;
-        }
-        
-        if (!isNullable) 
-            columnDef += " NOT NULL";
+      
 
         return columnDef;
     }
@@ -395,41 +533,11 @@
 			return cName;
 		}
 
-        SqlDataType sdt = column.GetReferenced(Column.DataType).First().GetProperty<SqlDataType>(DataType.SqlDataType);
-
+       
 		// first add the column name and data type
-        string columnDef = "[" + column.Name.Parts[2] + "] " + sdt.ToString().ToUpper();
+        string columnDef = cName;
 		
-
-		// get some properties which we append to the string dependent upon 
-        int precision = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Precision").First());
-        int scale = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Scale").First());
-        int length = (int)column.GetProperty(column.ObjectType.Properties.Where(p => p.Name == "Length").First());
-        
-        switch (sdt.ToString().ToUpper())
-        {
-            case "CHAR":
-            case "VARCHAR":
-            case "NCHAR":
-            case "NVARCHAR":
-				if (length == 0)
-					columnDef += "(MAX)";
-				else
-					columnDef += "(" + length.ToString() + ")";
-                break;
-            case "FLOAT":
-            case "REAL":
-            case "DATETIME2":
-                columnDef += "(" + precision.ToString() + ")";
-                break;
-            case "DECIMAL":
-            case "NUMERIC":
-                columnDef += "(" + precision.ToString() + "," + scale.ToString() + ")";
-                break;
-            default:
-				// don't add anything extra to other data types
-                break;
-        }
+		columnDef += GetColumnDataType(column,includeFullColumnDefinition: false);
         
         return columnDef;
     }
@@ -445,7 +553,7 @@
 	public TSqlModel GetInMemoryDatabaseModel()
     {
 		// create a new empty model 
-		TSqlModel model = new TSqlModel(SqlServerVersion.Sql120, new TSqlModelOptions { });
+		TSqlModel model = new TSqlModel(SqlServerVersion.Sql150, new TSqlModelOptions { });
 
 		// obtain a reference to the host provider which is processing the T4 template
 		var hostServiceProvider = (IServiceProvider)this.Host;
@@ -505,54 +613,56 @@
         }
     }
 
-	// returns the columns, excluding both sync columns ([$sb_node] ,[$sb_rownum])	
+	// returns the columns
 	//
-	public string GetColumnsWithDataType(TSqlObject table)
+	public string GetColumnsWithDataType(TSqlObject table, bool skipTimestampColumns)
 	{
 		int i=0;
 		string retorno = String.Empty;
    		foreach (var column in table.GetReferenced(Table.Columns))
 		{ 				     
-			
-			string columna = String.Empty;
-			string columnaName = String.Empty;
-			if(i==0)
+			if (!(skipTimestampColumns && IsTimestampColumn(column)))
 			{
-				columna = GetColumnWithDataTypeOnly(column);                					
-			}
-			else
-			{
-				columna = ","+GetColumnWithDataTypeOnly(column);					
-			}
-			retorno +=columna;				
-			i++;
-			
+				string columna = String.Empty;
+				string columnaName = String.Empty;
+				if(i==0)
+				{
+					columna = GetColumnWithDataTypeOnly(column);                					
+				}
+				else
+				{
+					columna = ","+GetColumnWithDataTypeOnly(column);					
+				}
+				retorno +=columna;				
+				i++;
+			}	
 		}
 		return(retorno);
 	}
 
 	// returns the columns
 	//
-	public string GetColumnsWithoutDataType(TSqlObject table)
+	public string GetColumnsWithoutDataType(TSqlObject table, bool skipTimestampColumns)
 	{
 		int i=0;
 		string retorno= String.Empty;
    		foreach (var column in table.GetReferenced(Table.Columns))
 		{ 				     
-			
-			string columnaName = String.Empty;
-			if(i==0)
+			if (!(skipTimestampColumns && IsTimestampColumn(column)))
 			{
-				columnaName = "[" + column.Name.Parts[2] + "] ";
+				string columnaName = String.Empty;
+				if(i==0)
+				{
+					columnaName = "[" + column.Name.Parts[2] + "] ";
+				}
+				else
+				{
+					columnaName = ", [" + column.Name.Parts[2] + "] ";
+				}
+					
+				retorno+=columnaName;
+				i++;
 			}
-			else
-			{
-				columnaName = ", [" + column.Name.Parts[2] + "] ";
-			}
-				
-			retorno+=columnaName;
-			i++;
-			
 		}
 		return(retorno);
 	}
@@ -570,6 +680,9 @@
             set; }
         [DataMember(Name="name")]
         public string Name { get;
+            set; }
+		[DataMember(Name="rows")]
+        public int Rows { get;
             set; }
     }
 
@@ -610,7 +723,7 @@
 	public TSqlModel GetInMemoryDatabaseModel(List<ObjectToAnalyze> objects_to_process)
     {
 		// create a new empty model 
-		TSqlModel model = new TSqlModel(SqlServerVersion.Sql120, new TSqlModelOptions { });
+		TSqlModel model = new TSqlModel(SqlServerVersion.Sql150, new TSqlModelOptions { });
 
 		// obtain a reference to the host provider which is processing the T4 template
 		var hostServiceProvider = (IServiceProvider)this.Host;
@@ -679,46 +792,92 @@
 
 	// returns primary key columns comma separated values
 	//
-	public string GetColumnsCommaSeparatedString(List<TSqlObject> columns)
+	public string GetColumnsCommaSeparatedString(List<TSqlObject> columns, bool skipTimestampColumns)
 	{
 		string retorno = String.Empty;
 		int i=0;
 		//System.Diagnostics.Debugger.Launch();
 		foreach (var column in columns)
-		{ 		
-		    if(i==0)
+		{
+			//System.Diagnostics.Debugger.Break();
+
+			if (!(skipTimestampColumns && IsTimestampColumn(column)))
 			{
-			   retorno = String.Format("[{0}] ",column.Name.Parts[2]);
+				if(i==0)
+				{
+				   retorno = String.Format("[{0}] ",column.Name.Parts[2]);
+				}
+				else
+				{
+				   retorno += String.Format(",[{0}] ",column.Name.Parts[2]);
+				}
+				i++;
 			}
-			else
-			{
-			   retorno += String.Format(",[{0}] ",column.Name.Parts[2]);
-			}
-			i++;
+			
 		}
 		return (retorno);
 	}
 
 	// returns columns with metadata  comma separated values
 	//
-	public string GetColumnsWithDataTypeCommaSeparatedString(List<TSqlObject> columns)
+	public string GetColumnsWithDataTypeCommaSeparatedString(List<TSqlObject> columns, bool skipTimestampColumns)
 	{
           string retorno = String.Empty;
           int i=0;
    		  foreach (var column in columns)
 		  { 				     
-			if(i==0)
-            {
-				retorno = GetColumnWithDataTypeOnly(column);                                
-            }
-			else
-            {
-				retorno += ","+GetColumnWithDataTypeOnly(column);
-            }
-            i++;
+			if (!(skipTimestampColumns && IsTimestampColumn(column)))
+			{
+				if(i==0)
+				{
+					retorno = GetColumnWithDataTypeOnly(column);                                
+				}
+				else
+				{
+					retorno += ","+GetColumnWithDataTypeOnly(column);
+				}
+				i++;
+			}
 		  }
 		return (retorno);
 	}
 
 	#endregion
+		public string GetDatabaseName()
+	{
+		var hostServiceProvider = (IServiceProvider)this.Host;
+		var dte = (DTE)hostServiceProvider.GetService(typeof(DTE));
+		EnvDTE.ProjectItem containingProjectItem = dte.Solution.FindProjectItem(Host.TemplateFile);		
+		Project currentProject = containingProjectItem.ContainingProject;
+		return (currentProject.Name);
+	}
+
+	public bool HasPartitionColumn(TSqlObject table)
+	{
+		bool hasPartitionColumn ;
+		var context = table.GetReferenced(Table.PartitionColumn).ToList();
+		hasPartitionColumn = context.Count() > 0 ?  true : false;
+		return hasPartitionColumn;
+	}
+
+	public string GetPartitioningColumnName(TSqlObject table)
+	{
+		string columnName = String.Empty;
+		var context = table.GetReferenced(Table.PartitionColumn).ToList().FirstOrDefault();
+		columnName = context.Name.Parts[2];
+		return columnName;
+	}
+
+	public string GetPartitioningSchemaName(TSqlObject table)
+	{
+		string schemaName = String.Empty;
+		schemaName = table.GetReferencedRelationshipInstances(Table.PartitionScheme).ToList().FirstOrDefault().ObjectName.ToString();
+		return schemaName;
+	}
+
+
+	public List<TSqlObject> GetReferencedPermissions(TSqlObject table)
+	{
+		return  table.GetReferencing().Where(_=>_.ObjectType.Name.ToString() == "Permission").ToList();
+	}
 #>
